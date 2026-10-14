@@ -120,6 +120,12 @@ powershell -ExecutionPolicy Bypass -File build\build.ps1 `
 
 部署时脚本会读取 `Human.exe` 的 PE 架构并校验平台是否匹配。
 
+更快捷的方式（固定 Win32、默认游戏目录）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File build\deploy.ps1
+```
+
 详细验收步骤见 [`docs/安装与验证.md`](docs/安装与验证.md)。
 
 ## 许可
