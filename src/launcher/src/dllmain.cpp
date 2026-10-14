@@ -20,6 +20,7 @@
 #include "forward.h"
 #include "logger.h"
 #include "mono_loader.h"
+#include "sync_hook.h"
 
 namespace {
 
@@ -144,6 +145,9 @@ DWORD WINAPI InjectionThread(LPVOID)
     {
         return 4;
     }
+
+    // 阶段 1.8：安装自定义消息接收钩子（拦截 OnServerReceive / OnClientReceive）。
+    yxmod5::InstallSyncHooks(mono, utf8Path.c_str());
 
     yxmod5::logging::Info("已调用 Doorstop.Entrypoint.Start，注入链路完成");
     return 0;

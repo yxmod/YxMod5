@@ -27,6 +27,10 @@ typedef void* (__cdecl* t_mono_class_from_name)(void* image, const char* name_sp
 typedef void* (__cdecl* t_mono_class_get_method_from_name)(void* klass, const char* name, int param_count);
 typedef void* (__cdecl* t_mono_runtime_invoke)(void* method, void* obj, void** params, void** exc);
 
+// 同步钩子（阶段 1.8）所需的额外 Mono API。
+typedef void* (__cdecl* t_mono_compile_method)(void* method);
+typedef void* (__cdecl* t_mono_object_unbox)(void* obj);
+
 struct MonoApi
 {
     HMODULE module = nullptr;
@@ -38,12 +42,20 @@ struct MonoApi
     t_mono_class_from_name           class_from_name    = nullptr;
     t_mono_class_get_method_from_name class_get_method = nullptr;
     t_mono_runtime_invoke            runtime_invoke     = nullptr;
+    t_mono_compile_method            compile_method     = nullptr;
+    t_mono_object_unbox              object_unbox       = nullptr;
 
     bool IsValid() const
     {
         return get_root_domain && thread_attach && domain_assembly_open &&
                assembly_get_image && class_from_name && class_get_method &&
                runtime_invoke;
+    }
+
+    // 同步钩子所需函数是否就绪（阶段 1.8）。
+    bool IsHookReady() const
+    {
+        return IsValid() && compile_method && object_unbox;
     }
 };
 
@@ -78,6 +90,8 @@ inline bool LoadMono(MonoApi& api, DWORD timeoutMs)
     api.class_from_name     = reinterpret_cast<t_mono_class_from_name>(GetProcAddress(api.module, "mono_class_from_name"));
     api.class_get_method    = reinterpret_cast<t_mono_class_get_method_from_name>(GetProcAddress(api.module, "mono_class_get_method_from_name"));
     api.runtime_invoke      = reinterpret_cast<t_mono_runtime_invoke>(GetProcAddress(api.module, "mono_runtime_invoke"));
+    api.compile_method      = reinterpret_cast<t_mono_compile_method>(GetProcAddress(api.module, "mono_compile_method"));
+    api.object_unbox        = reinterpret_cast<t_mono_object_unbox>(GetProcAddress(api.module, "mono_object_unbox"));
 
     if (!api.IsValid())
     {
