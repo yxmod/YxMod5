@@ -101,6 +101,20 @@
     <Compile Include="src\NativeConsole.cs" />
     <Compile Include="src\YxMod.cs" />
     <Compile Include="src\YxModHost.cs" />
+    <Compile Include="src\SelfTest.cs" />
+    <Compile Include="src\Runtime\Reflector.cs" />
+    <Compile Include="src\Runtime\Safe.cs" />
+    <Compile Include="src\Runtime\Accessors\HumanAccessor.cs" />
+    <Compile Include="src\Runtime\Accessors\NetGameAccessor.cs" />
+    <Compile Include="src\Runtime\Accessors\NetHostAccessor.cs" />
+    <Compile Include="src\Runtime\Accessors\NetPlayerAccessor.cs" />
+    <Compile Include="src\Config\ModPaths.cs" />
+    <Compile Include="src\Config\IniFile.cs" />
+    <Compile Include="src\Config\ModConfig.cs" />
+    <Compile Include="src\Input\HotKey.cs" />
+    <Compile Include="src\Input\HotKeyManager.cs" />
+    <Compile Include="src\Net\SyncProtocol.cs" />
+    <Compile Include="src\Net\SyncChannel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

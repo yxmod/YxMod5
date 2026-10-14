@@ -2,7 +2,7 @@
 // YxMod5 C# 模组层 —— 日志系统
 // ---------------------------------------------------------------------------
 // 三通道输出：
-//   * 文件：<游戏目录>\YxMod5.log（追加、UTF-8、带时间戳、常驻流自动刷新）
+//   * 文件：<游戏目录>\YxMod5\YxMod5.log（追加、UTF-8、带时间戳、常驻流自动刷新）
 //   * 控制台：YXMOD5 Debug Console（NativeConsole 直写控制器句柄）
 //   * Unity：Debug.Log / Debug.LogWarning / Debug.LogError
 //
@@ -176,13 +176,16 @@ namespace YxMod5
 
             // 只使用 BCL/系统 API，保证可从原生注入线程安全调用
             // （Application.dataPath 等 Unity API 不在非主线程触碰）。
+            // 日志迁入 <游戏根目录>\YxMod5\（阶段 1 约定）。
             try
             {
                 string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
                 string gameDir = Path.GetDirectoryName(exePath);
                 if (!string.IsNullOrEmpty(gameDir))
                 {
-                    _logPath = Path.Combine(gameDir, "YxMod5.log");
+                    string root = Path.Combine(gameDir, "YxMod5");
+                    Directory.CreateDirectory(root);
+                    _logPath = Path.Combine(root, "YxMod5.log");
                     return;
                 }
             }
@@ -192,7 +195,9 @@ namespace YxMod5
 
             try
             {
-                _logPath = Path.Combine(Directory.GetCurrentDirectory(), "YxMod5.log");
+                string root = Path.Combine(Directory.GetCurrentDirectory(), "YxMod5");
+                Directory.CreateDirectory(root);
+                _logPath = Path.Combine(root, "YxMod5.log");
             }
             catch
             {

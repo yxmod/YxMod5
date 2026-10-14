@@ -2,12 +2,16 @@
 // YxMod5 C# 模组层 —— 宿主 MonoBehaviour
 // ---------------------------------------------------------------------------
 // 生命周期驱动骨架：以 Awake/Start/Update/FixedUpdate/LateUpdate/OnGUI 为执行
-// 骨架，后续功能模块（roadmap 阶段 1 及以后）以组件形式注册到本宿主。
-// 本阶段（阶段 0）仅实现最小闭环：挂载成功、保持存活、输出日志，并注册
-// 异常/日志捕获，便于将崩溃信息写入 <游戏目录>\YxMod5.log。
+// 骨架，后续功能模块（roadmap 阶段 2 及以后）以组件形式注册到本宿主。
+// 阶段 0：最小闭环（挂载成功、保持存活、异常/日志捕获）。
+// 阶段 1：运行时基础（反射访问器 / 配置 / 热键 / 同步通道）初始化与轮询。
 // ===========================================================================
 using System;
 using UnityEngine;
+using YxMod5.Config;
+using YxMod5.Input;
+using YxMod5.Net;
+using YxMod5.Runtime.Accessors;
 
 namespace YxMod5
 {
@@ -36,15 +40,116 @@ namespace YxMod5
             DontDestroyOnLoad(gameObject);
 
             RegisterHandlers();
+            InitializeStage1();
 
             Logger.Info("YxMod 宿主 Awake，版本 " + Version);
             Logger.Info("日志文件：" + Logger.LogPath);
             Logger.Info("游戏目录：" + Application.dataPath);
         }
 
+        // ---- 阶段 1 运行时基础初始化 -------------------------------------
+
+        private void InitializeStage1()
+        {
+            // 目录与配置。
+            ModPaths.EnsureCreated();
+            Logger.Info("模组目录：" + ModPaths.Root);
+
+            // 同步通道（自定义消息收发）。
+            SyncChannel.Initialize();
+            SyncChannel.RegisterHandler(SyncProtocol.SubType.Text, OnSyncText);
+
+            // 示例热键：
+            //   F8 = 发送文本自测消息（本地/单机直接分发；多人发到房主/广播）。
+            //   数字 1 = 输出运行时状态日志。
+            HotKeyManager.Instance.Register("example.sync.text", HotKey.Single(KeyCode.F8), OnHotKeySendText);
+            HotKeyManager.Instance.Register("example.runtime.log", HotKey.Numbered(1), LogRuntimeState);
+
+            Logger.Info("阶段 1 运行时基础已初始化（访问器/配置/热键/同步通道）");
+        }
+
+        private static void OnSyncText(SyncProtocol.Message message)
+        {
+            string text = message.Payload != null
+                ? System.Text.Encoding.UTF8.GetString(message.Payload)
+                : string.Empty;
+            Logger.Info("收到自定义文本消息（sender=" + message.SenderId +
+                        ", permission=" + message.Permission + "）：" + text);
+        }
+
+        private static void OnHotKeySendText()
+        {
+            const string text = "YxMod5 同步测试";
+            if (NetGameAccessor.IsLocal)
+            {
+                SyncChannel.DispatchLocal(SyncProtocol.PermissionHost, SyncProtocol.SubType.Text,
+                    System.Text.Encoding.UTF8.GetBytes(text));
+            }
+            else if (NetGameAccessor.IsServer)
+            {
+                SyncChannel.Broadcast(SyncProtocol.PermissionHost, SyncProtocol.SubType.Text,
+                    System.Text.Encoding.UTF8.GetBytes(text));
+            }
+            else
+            {
+                SyncChannel.SendToServer(SyncProtocol.PermissionNormal, SyncProtocol.SubType.Text,
+                    System.Text.Encoding.UTF8.GetBytes(text));
+            }
+            Logger.Info("已发送自定义文本消息：" + text);
+        }
+
+        private static void LogRuntimeState()
+        {
+            Logger.Info("---- 运行时状态 ----");
+            Logger.Info("NetGame: isServer=" + NetGameAccessor.IsServer +
+                        ", isClient=" + NetGameAccessor.IsClient +
+                        ", isLocal=" + NetGameAccessor.IsLocal);
+
+            var players = NetGameAccessor.Players;
+            Logger.Info("玩家数：" + (players != null ? players.Count : 0));
+            if (players != null)
+            {
+                for (int i = 0; i < players.Count; i++)
+                {
+                    var player = players[i];
+                    if (player == null)
+                    {
+                        continue;
+                    }
+                    Logger.Info("  #" + i + " netId=" + NetPlayerAccessor.GetNetId(player) +
+                                ", local=" + NetPlayerAccessor.IsLocalPlayer(player) +
+                                ", name=" + (NetPlayerAccessor.GetName(player) ?? "(无)"));
+                }
+            }
+
+            Human localHuman = HumanAccessor.GetLocalPlayer();
+            if (localHuman != null)
+            {
+                Logger.Info("本地 Human: state=" + HumanAccessor.GetState(localHuman) +
+                            ", onGround=" + HumanAccessor.IsOnGround(localHuman) +
+                            ", velocity=" + HumanAccessor.GetVelocity(localHuman));
+            }
+            else
+            {
+                Logger.Info("本地 Human：尚未生成（可能在大厅/菜单）");
+            }
+            Logger.Info("--------------------");
+        }
+
         private void Start()
         {
             Logger.Info("YxMod 宿主 Start（最小闭环就绪）");
+
+            // 阶段 1：自测 + 运行时状态观测（验证标准自主验收项）。
+            SelfTest.RunAll();
+            LogRuntimeState();
+        }
+
+        private void Update()
+        {
+            // 热键轮询 + 自定义消息入站分发。
+            HotKeyManager.Instance.Poll();
+            SyncChannel.Drain();
         }
 
         private void OnDestroy()
