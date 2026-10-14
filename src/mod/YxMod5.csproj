@@ -98,6 +98,7 @@
   <ItemGroup>
     <Compile Include="src\Entrypoint.cs" />
     <Compile Include="src\Logger.cs" />
+    <Compile Include="src\NativeConsole.cs" />
     <Compile Include="src\YxMod.cs" />
     <Compile Include="src\YxModHost.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -32,32 +32,30 @@ namespace Doorstop
             {
                 SceneManager.activeSceneChanged += OnActiveSceneChanged;
                 _subscribed = true;
-                YxMod5.Logger.Info("Entrypoint.Start 已调用，等待场景切换后挂载宿主");
+                // 本方法运行在原生注入线程，禁止触碰 Unity API（Debug.Log 等），
+                // 因此仅写文件/控制台。
+                YxMod5.Logger.InfoFile("Entrypoint.Start 已调用，等待场景切换后挂载宿主");
             }
             catch (Exception exception)
             {
-                YxMod5.Logger.Exception("Entrypoint.Start 注册场景事件失败", exception);
+                YxMod5.Logger.ErrorFile("Entrypoint.Start 注册场景事件失败 -> " + exception);
             }
         }
 
         private static void OnActiveSceneChanged(UnityEngine.SceneManagement.Scene oldScene,
                                                  UnityEngine.SceneManagement.Scene newScene)
         {
-            if (_hostCreated)
-            {
-                return;
-            }
-
             try
             {
+                // 每次场景切换都确保宿主存在（Ensure 幂等）：
+                // 若宿主已被销毁则自动重建，保证跨场景稳定存活。
                 YxMod5.YxModHost.Ensure();
-                _hostCreated = true;
 
-                // 注入完成后注销事件，避免重复执行。
-                SceneManager.activeSceneChanged -= OnActiveSceneChanged;
-                _subscribed = false;
-
-                YxMod5.Logger.Info("模组注入成功，宿主已挂载（场景：" + newScene.name + "）");
+                if (!_hostCreated)
+                {
+                    _hostCreated = true;
+                    YxMod5.Logger.Info("模组注入成功，宿主已挂载（场景：" + newScene.name + "）");
+                }
             }
             catch (Exception exception)
             {
