@@ -83,7 +83,7 @@ inline void ConsoleInit()
     // 若进程已有控制台，AllocConsole 会失败，此时直接复用。
     if (AllocConsole())
     {
-        SetConsoleTitleW(L"YxMod5 Debug Console");
+        SetConsoleTitleW(L"YXMOD5 Debug Console");
     }
 
     FILE* f = nullptr;

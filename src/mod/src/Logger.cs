@@ -2,9 +2,9 @@
 // YxMod5 C# 模组层 —— 日志系统
 // ---------------------------------------------------------------------------
 // 三通道输出：
-//   * 文件：<游戏目录>\YxMod5.log（追加、UTF-8、带时间戳）
+//   * 文件：<游戏目录>\YxMod5.log（追加、UTF-8、带时间戳、常驻流自动刷新）
+//   * 控制台：YXMOD5 Debug Console（NativeConsole 直写控制器句柄）
 //   * Unity：Debug.Log / Debug.LogWarning / Debug.LogError
-//   * 控制台：Console.WriteLine（原生层 AllocConsole 分配的调试控制台）
 //
 // 线程约定：
 //   * 由原生注入线程调用的入口请使用 …File 系列（不触碰 Unity API）；
@@ -17,7 +17,7 @@ using UnityEngine;
 
 namespace YxMod5
 {
-    /// <summary>统一日志接口（文件 + Unity 日志 + 控制台）。</summary>
+    /// <summary>统一日志接口（文件 + 控制台 + Unity 日志）。</summary>
     public static class Logger
     {
         private const string Tag = "[YxMod5]";
@@ -27,6 +27,7 @@ namespace YxMod5
 
         private static string _logPath;
         private static bool _logPathResolved;
+        private static StreamWriter _writer;
 
         /// <summary>日志文件完整路径（解析失败时为 null）。</summary>
         public static string LogPath
@@ -78,6 +79,26 @@ namespace YxMod5
             AppendToFile(line);
         }
 
+        /// <summary>刷新并关闭日志文件（退出时调用）。</summary>
+        public static void Shutdown()
+        {
+            lock (Sync)
+            {
+                if (_writer != null)
+                {
+                    try
+                    {
+                        _writer.Flush();
+                        _writer.Dispose();
+                    }
+                    catch
+                    {
+                    }
+                    _writer = null;
+                }
+            }
+        }
+
         // ---- 内部实现 ------------------------------------------------------
 
         private static void Write(string level, string message, LogType type, bool useUnityLog)
@@ -85,14 +106,8 @@ namespace YxMod5
             string line = Tag + "[" + level + "] " + message;
             AppendToFile(line);
 
-            try
-            {
-                Console.WriteLine(line);
-            }
-            catch
-            {
-                // 无控制台时忽略，仅保留文件与 Unity 日志通道。
-            }
+            // 直接写原生调试控制台（Console.Out 可能持有失效句柄）。
+            NativeConsole.WriteLine(line);
 
             if (!useUnityLog)
             {
@@ -132,10 +147,17 @@ namespace YxMod5
 
             try
             {
-                string stamped = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " " + line + Environment.NewLine;
+                string stamped = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " " + line;
                 lock (Sync)
                 {
-                    File.AppendAllText(_logPath, stamped, Utf8NoBom);
+                    if (_writer == null)
+                    {
+                        FileStream stream = new FileStream(
+                            _logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                        _writer = new StreamWriter(stream, Utf8NoBom);
+                        _writer.AutoFlush = true;
+                    }
+                    _writer.WriteLine(stamped);
                 }
             }
             catch

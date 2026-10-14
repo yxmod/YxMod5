@@ -59,6 +59,7 @@ namespace YxMod5
         private void OnApplicationQuit()
         {
             Logger.Info("游戏退出（OnApplicationQuit）");
+            Logger.Shutdown();
         }
 
         // ---- 异常 / Unity 日志捕获 -----------------------------------------
@@ -90,20 +91,37 @@ namespace YxMod5
             }
         }
 
+        // 是否把游戏的全部 Debug.Log 输出接入 YXMOD5 Debug Console。
+        // true  = 转发全部日志；false = 仅转发 Warning/Error/Exception/Assert。
+        private const bool ForwardAllUnityLogs = true;
+
         private static void OnUnityLogMessage(string message, string stackTrace, LogType type)
         {
-            // 只记录警告及以上，避免与自身日志重复刷屏。
-            if (type == LogType.Log)
-            {
-                return;
-            }
-            if (!string.IsNullOrEmpty(message) && message.Contains("[YxMod5]"))
+            if (string.IsNullOrEmpty(message))
             {
                 return;
             }
 
-            string line = "[Unity][" + type + "] " + message;
-            if (!string.IsNullOrEmpty(stackTrace))
+            // 跳过本模组自身的日志，避免重复刷屏。
+            if (message.Contains("[YxMod5]"))
+            {
+                return;
+            }
+
+            bool isImportant = type == LogType.Warning || type == LogType.Error ||
+                               type == LogType.Exception || type == LogType.Assert;
+
+            if (!ForwardAllUnityLogs && !isImportant)
+            {
+                return;
+            }
+
+            // 转发到 YXMOD5 Debug Console（游戏自带 debug 信息由此进入控制台）。
+            string line = "[Game][" + type + "] " + message;
+            NativeConsole.WriteLine(line);
+
+            // 写入 <游戏目录>\YxMod5.log，保留完整记录；重要日志附堆栈。
+            if (isImportant && !string.IsNullOrEmpty(stackTrace))
             {
                 line += "\n" + stackTrace;
             }
