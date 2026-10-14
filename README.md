@@ -12,10 +12,14 @@
 - [`specs/tech-stack.md`](specs/tech-stack.md) —— 技术栈
 - [`specs/roadmap.md`](specs/roadmap.md) —— 分阶段实施顺序
 - [`specs/2026-10-14-engineering-init-launch-chain/`](specs/2026-10-14-engineering-init-launch-chain/) —— 阶段 0（工程初始化与启动链）需求 / 计划 / 验证
+- [`specs/2026-10-15-runtime-foundation-multiplayer-sync/`](specs/2026-10-15-runtime-foundation-multiplayer-sync/) —— 阶段 1（自研运行时基础与多人同步设计）需求 / 计划 / 验证 / 协议
 
 ## 当前进度
 
-阶段 0（里程碑 **M0 可注入**）已实现：启动链「原生代理 DLL → Mono → C# 入口 → 模组宿主」打通。后续阶段（运行时基础、UI 框架、核心能力等）见 roadmap。
+- 阶段 0（里程碑 **M0 可注入**）已完成：启动链「原生代理 DLL → Mono → C# 入口 → 模组宿主」打通。
+- 阶段 1（**自研运行时基础与多人同步设计**）已完成：反射访问器核心 + 安全防护、Human / NetGame / NetPlayer 访问器、配置系统（INI + PlayerPrefs）、热键系统、自定义消息（MsgId=0）同步协议与最小收发通道（发送走反射，接收走自研原生钩子）。
+
+后续阶段（IMGUI UI 框架、核心能力等）见 roadmap。
 
 ## 架构
 
@@ -28,6 +32,7 @@
 ┌─────────────────────────────────────────────────────────┐
 │  原生启动层（winhttp.dll，C++20，AheadLib 代理）           │
 │  转发真实 winhttp 导出 → 进程名校验 → 等待 Mono → 调 C# 入口 │
+│  → 安装同步钩子（拦截 NetGame.OnServerReceive/OnClientReceive）│
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -38,13 +43,18 @@ specs/                          需求 / 计划 / 验证文档
 src/
   launcher/                     原生启动层（C++，输出 winhttp.dll）
     YxMod5Launcher.vcxproj
-    src/                        dllmain / forward / mono_loader / logger
+    src/                        dllmain / forward / mono_loader / logger / sync_hook
     generated/                  自动生成的 winhttp 转发代码
   mod/                          C# 模组层（输出 YxMod5.dll）
     YxMod5.csproj
-    src/                        Entrypoint / YxMod / YxModHost / Logger
+    src/                        Entrypoint / YxMod / YxModHost / Logger / SelfTest
+      Runtime/                  反射访问器 + 安全防护 + Human/NetGame/NetPlayer 访问器
+      Config/                   目录 / INI / 分层配置
+      Input/                    热键系统
+      Net/                      同步协议 + 收发通道
 build/                          构建脚本与中间产物
 release/                        发布产物（winhttp.dll、YxMod5.dll）
+tests/                          离线自测（NetStream 编码往返）
 YxMod5.sln                      解决方案
 ```
 
