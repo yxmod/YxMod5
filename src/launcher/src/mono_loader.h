@@ -89,6 +89,30 @@ inline bool LoadMono(MonoApi& api, DWORD timeoutMs)
     return true;
 }
 
+// 等待 Mono 运行时真正初始化完成（root domain 可用）。
+// Unity 在启动过程中才初始化 Mono，若在模块刚加载时就调用 mono_*，
+// 可能因运行时未就绪而崩溃。这里先等待主窗口进入空闲，再轮询 root domain。
+inline bool WaitForMonoRuntime(MonoApi& api, DWORD timeoutMs)
+{
+    logging::Info("等待游戏初始化完成（WaitForInputIdle，最多 %lu ms）...",
+                  static_cast<unsigned long>(timeoutMs));
+    WaitForInputIdle(GetCurrentProcess(), timeoutMs);
+
+    const DWORD start = GetTickCount();
+    while ((GetTickCount() - start) < timeoutMs)
+    {
+        if (api.get_root_domain() != nullptr)
+        {
+            logging::Info("Mono 运行时已就绪（root domain 可用）");
+            return true;
+        }
+        Sleep(100);
+    }
+
+    logging::Error("等待 Mono 运行时就绪超时");
+    return false;
+}
+
 // 加载托管程序集并调用其静态无参方法。
 inline bool InvokeStatic(MonoApi& api,
                          const char* assemblyPath,
@@ -104,8 +128,10 @@ inline bool InvokeStatic(MonoApi& api,
     }
 
     // 当前线程是原生线程，需先附加到 Mono 运行时。
+    logging::Info("附加线程到 Mono 运行时...");
     api.thread_attach(domain);
 
+    logging::Info("打开托管程序集：%s", assemblyPath);
     void* assembly = api.domain_assembly_open(domain, assemblyPath);
     if (assembly == nullptr)
     {
@@ -120,6 +146,7 @@ inline bool InvokeStatic(MonoApi& api,
         return false;
     }
 
+    logging::Info("查找类型：%s.%s", nameSpace, className);
     void* klass = api.class_from_name(image, nameSpace, className);
     if (klass == nullptr)
     {
@@ -134,6 +161,7 @@ inline bool InvokeStatic(MonoApi& api,
         return false;
     }
 
+    logging::Info("调用托管方法：%s.%s::%s()", nameSpace, className, methodName);
     void* exception = nullptr;
     api.runtime_invoke(method, nullptr, nullptr, &exception);
     if (exception != nullptr)
@@ -142,6 +170,7 @@ inline bool InvokeStatic(MonoApi& api,
         return false;
     }
 
+    logging::Info("托管方法调用返回");
     return true;
 }
 
