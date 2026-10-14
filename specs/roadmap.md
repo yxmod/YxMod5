@@ -10,17 +10,20 @@
 
 ## 阶段 0：工程初始化与启动链（里程碑 M0）
 
-- [ ] 0.1 建立仓库目录结构（`specs/`、`src/launcher/`、`src/mod/`、`build/`、`release/`）。
-- [ ] 0.2 创建原生启动层 C++ 工程（`.vcxproj`，DLL，Win32/x64）。
-- [ ] 0.3 实现 AheadLib 转发框架：加载真实系统 DLL 并转发导出。
-- [ ] 0.4 实现可配置宿主名（默认 `winhttp.dll`，输出名可切换为 `version.dll`）。
-- [ ] 0.5 实现进程名校验（仅对 `human.exe` 生效）。
-- [ ] 0.6 实现 Mono 运行时加载：获取 `mono-2.0-bdwgc.dll` 及 `mono_*` 函数地址。
-- [ ] 0.7 实现 C# 方法调用：加载 `YxMod5.dll` → 调 `Doorstop.Entrypoint.Start`。
-- [ ] 0.8 创建 C# 模组工程（`.csproj`，.NET Framework 4.8，引用游戏程序集，`Private=False`）。
-- [ ] 0.9 实现 `Entrypoint` + `YxMod5Host` GameObject + 最小 `YxMod` MonoBehaviour 闭环。
-- [ ] 0.10 实现日志系统与调试控制台。
-- [ ] 0.11 注入验证：进游戏可见日志/空宿主，确认链路打通。
+> 状态：✅ **已完成**（2026-10-14 验收通过，已合并至 `main`）。
+> 注：本阶段宿主固定为 `winhttp.dll`（`version.dll` 备选宿主按需求延后，见阶段 0 需求文档范围特化说明）。
+
+- [x] 0.1 建立仓库目录结构（`specs/`、`src/launcher/`、`src/mod/`、`build/`、`release/`）。
+- [x] 0.2 创建原生启动层 C++ 工程（`.vcxproj`，DLL，Win32/x64）。
+- [x] 0.3 实现 AheadLib 转发框架：加载真实系统 DLL 并转发导出。
+- [x] 0.4 实现可配置宿主名（默认 `winhttp.dll`，输出名可切换为 `version.dll`）。
+- [x] 0.5 实现进程名校验（仅对 `human.exe` 生效）。
+- [x] 0.6 实现 Mono 运行时加载：获取 `mono-2.0-bdwgc.dll` 及 `mono_*` 函数地址。
+- [x] 0.7 实现 C# 方法调用：加载 `YxMod5.dll` → 调 `Doorstop.Entrypoint.Start`。
+- [x] 0.8 创建 C# 模组工程（`.csproj`，.NET Framework 4.8，引用游戏程序集，`Private=False`）。
+- [x] 0.9 实现 `Entrypoint` + `YxMod5Host` GameObject + 最小 `YxMod` MonoBehaviour 闭环。
+- [x] 0.10 实现日志系统与调试控制台。
+- [x] 0.11 注入验证：进游戏可见日志/空宿主，确认链路打通。
 
 ## 阶段 1：自研运行时基础与多人同步设计
 
