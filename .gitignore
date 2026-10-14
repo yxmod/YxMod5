@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# YxMod5 .gitignore
+# ---------------------------------------------------------------------------
+
+# 构建输出（保留 build/ 下的脚本，忽略产物目录）
+/build/launcher/
+/build/mod/
+/build/obj/
+/build/_build_*.bat
+
+# 发布产物（保留占位文件）
+/release/*
+!/release/.gitkeep
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.user
+
+# C# / .NET
+[Bb]in/
+[Oo]bj/
+*.pdb
+*.cache
+
+# 原生中间产物
+*.obj
+*.ilk
+*.exp
+*.lib
+*.tlog
+*.iobj
+*.ipdb
+
+# 游戏程序集引用（仅编译期引用，禁止随仓库分发）
+src/mod/libs/
+
+# 日志与临时文件
+*.log
+*.tmp
